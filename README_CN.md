@@ -42,7 +42,7 @@
 ### Homebrew (macOS)
 
 ```bash
-brew tap PentiumRabbit/tap
+brew tap pr-g/tap
 brew install todo-tui
 ```
 
@@ -52,32 +52,32 @@ brew install todo-tui
 
 **macOS (Apple Silicon)**
 ```bash
-curl -L https://github.com/PentiumRabbit/todo-tui/releases/latest/download/todo-tui-aarch64-apple-darwin.tar.gz | tar xz
+curl -L https://github.com/pr-g/todo-tui/releases/latest/download/todo-tui-aarch64-apple-darwin.tar.gz | tar xz
 sudo mv todo-tui /usr/local/bin/
 ```
 
 **macOS (Intel)**
 ```bash
-curl -L https://github.com/PentiumRabbit/todo-tui/releases/latest/download/todo-tui-x86_64-apple-darwin.tar.gz | tar xz
+curl -L https://github.com/pr-g/todo-tui/releases/latest/download/todo-tui-x86_64-apple-darwin.tar.gz | tar xz
 sudo mv todo-tui /usr/local/bin/
 ```
 
 **Ubuntu / Linux (x86_64) — `.deb` 包**
 ```bash
-curl -LO https://github.com/PentiumRabbit/todo-tui/releases/latest/download/todo-tui_0.4.0-1_amd64.deb
+curl -LO https://github.com/pr-g/todo-tui/releases/latest/download/todo-tui_0.4.0-1_amd64.deb
 sudo dpkg -i todo-tui_0.4.0-1_amd64.deb
 ```
 
 **Ubuntu / Linux (x86_64) — 二进制**
 ```bash
-curl -L https://github.com/PentiumRabbit/todo-tui/releases/latest/download/todo-tui-x86_64-unknown-linux-gnu.tar.gz | tar xz
+curl -L https://github.com/pr-g/todo-tui/releases/latest/download/todo-tui-x86_64-unknown-linux-gnu.tar.gz | tar xz
 sudo mv todo-tui /usr/local/bin/
 ```
 
 ### 从源码构建
 
 ```bash
-git clone https://github.com/PentiumRabbit/todo-tui.git
+git clone https://github.com/pr-g/todo-tui.git
 cd todo-tui
 cargo build --release
 ./target/release/todo-tui
