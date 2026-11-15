@@ -284,10 +284,14 @@ mod tests {
             due_date: None,
             notes: None,
         };
-        let created = storage.insert_todo(&new_todo).expect("failed to insert todo");
+        let created = storage
+            .insert_todo(&new_todo)
+            .expect("failed to insert todo");
 
         let todos = storage.list_todos().expect("failed to list todos");
-        assert!(todos.iter().any(|t| t.id == created.id && t.title == "测试创建任务"));
+        assert!(todos
+            .iter()
+            .any(|t| t.id == created.id && t.title == "测试创建任务"));
 
         drop(storage);
         let _ = fs::remove_file(&db_path);
@@ -305,12 +309,17 @@ mod tests {
             due_date: None,
             notes: None,
         };
-        let mut todo = storage.insert_todo(&new_todo).expect("failed to insert todo");
+        let mut todo = storage
+            .insert_todo(&new_todo)
+            .expect("failed to insert todo");
         todo.title = "更新后的标题".to_string();
         storage.update_todo(&todo).expect("failed to update todo");
 
         let todos = storage.list_todos().expect("failed to list todos");
-        let updated = todos.iter().find(|t| t.id == todo.id).expect("todo not found");
+        let updated = todos
+            .iter()
+            .find(|t| t.id == todo.id)
+            .expect("todo not found");
         assert_eq!(updated.title, "更新后的标题");
 
         drop(storage);
