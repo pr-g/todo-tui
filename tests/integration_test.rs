@@ -1,10 +1,11 @@
 #[cfg(test)]
-mod storage_tests {
-    use std::path::PathBuf;
+fn test_db(dir: &std::path::Path) -> std::path::PathBuf {
+    dir.join("test.db")
+}
 
-    fn test_db(dir: &std::path::Path) -> PathBuf {
-        dir.join("test.db")
-    }
+#[cfg(test)]
+mod storage_tests {
+    use super::test_db;
 
     // 由于是 bin crate，无法直接 use todo_tui::storage
     // 改用 rusqlite 直接验证数据库结构
@@ -80,7 +81,11 @@ mod storage_tests {
             .unwrap();
         let todo = stmt
             .query_row(rusqlite::params!["测试任务"], |row| {
-                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?, row.get::<_, i64>(2)?))
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
             })
             .unwrap();
 
@@ -126,7 +131,13 @@ mod storage_tests {
         assert_eq!(completed, 1);
 
         // 删除
-        let id: i64 = conn.query_row("SELECT id FROM todos WHERE title = ?1", rusqlite::params!["待更新任务"], |r| r.get(0)).unwrap();
+        let id: i64 = conn
+            .query_row(
+                "SELECT id FROM todos WHERE title = ?1",
+                rusqlite::params!["待更新任务"],
+                |r| r.get(0),
+            )
+            .unwrap();
         conn.execute("DELETE FROM todos WHERE id = ?1", rusqlite::params![id])
             .unwrap();
         let count: i64 = conn
@@ -180,11 +191,8 @@ mod storage_tests {
         .unwrap();
 
         // 插入 category
-        conn.execute(
-            "INSERT INTO categories (name) VALUES ('工作')",
-            [],
-        )
-        .unwrap();
+        conn.execute("INSERT INTO categories (name) VALUES ('工作')", [])
+            .unwrap();
         let cat_id = conn.last_insert_rowid();
 
         // 插入关联 category 的 todo
@@ -300,13 +308,17 @@ mod storage_tests {
 
         // 过滤未完成 (completed=0)
         let pending_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM todos WHERE completed = 0", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM todos WHERE completed = 0", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(pending_count, 3);
 
         // 过滤已完成 (completed=1)
         let done_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM todos WHERE completed = 1", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM todos WHERE completed = 1", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(done_count, 2);
 
@@ -345,7 +357,7 @@ mod storage_tests {
         // 日期越界 2026-04-31 非法（4月只有30天）
         let bad_day = "2026-04-31".parse::<NaiveDate>();
         assert!(bad_day.is_err());
-}
+    }
 
     #[test]
     fn test_delete_todo() {
@@ -363,11 +375,20 @@ mod storage_tests {
         )
         .unwrap();
 
-        let id: i64 = conn.query_row("SELECT id FROM todos WHERE title = ?1", rusqlite::params!["待删除任务"], |r| r.get(0)).unwrap();
+        let id: i64 = conn
+            .query_row(
+                "SELECT id FROM todos WHERE title = ?1",
+                rusqlite::params!["待删除任务"],
+                |r| r.get(0),
+            )
+            .unwrap();
 
-        conn.execute("DELETE FROM todos WHERE id = ?1", rusqlite::params![id]).unwrap();
+        conn.execute("DELETE FROM todos WHERE id = ?1", rusqlite::params![id])
+            .unwrap();
 
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM todos", [], |r| r.get(0)).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM todos", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(count, 0);
     }
 
@@ -387,7 +408,13 @@ mod storage_tests {
         )
         .unwrap();
 
-        let id: i64 = conn.query_row("SELECT id FROM todos WHERE title = ?1", rusqlite::params!["查询任务"], |r| r.get(0)).unwrap();
+        let id: i64 = conn
+            .query_row(
+                "SELECT id FROM todos WHERE title = ?1",
+                rusqlite::params!["查询任务"],
+                |r| r.get(0),
+            )
+            .unwrap();
 
         let (title, completed): (String, i64) = conn
             .query_row(
@@ -480,79 +507,98 @@ mod todo_model_tests {
     }
 }
 
-    #[test]
-    fn test_todo_crud_lifecycle() {
-        let tmp = tempfile::tempdir().unwrap();
-        let db_path = test_db(tmp.path());
-        let conn = rusqlite::Connection::open(&db_path).unwrap();
-        conn.execute_batch(
+#[test]
+fn test_todo_crud_lifecycle() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db_path = test_db(tmp.path());
+    let conn = rusqlite::Connection::open(&db_path).unwrap();
+    conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS todos (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                title TEXT NOT NULL,\n                description TEXT,\n                priority TEXT NOT NULL DEFAULT 'Medium',\n                due_date TEXT,\n                status TEXT NOT NULL DEFAULT 'Pending',\n                created_at TEXT NOT NULL,\n                updated_at TEXT NOT NULL\n            );",
         ).unwrap();
 
-        // 创建任务
-        conn.execute(
+    // 创建任务
+    conn.execute(
             "INSERT INTO todos (title, description, priority, due_date, status, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)",
             rusqlite::params!["测试任务", "这是一个测试任务", "High", "2026-08-20", "Pending", "2026-08-14T08:00:00"],
         ).unwrap();
 
-        // 查询任务
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM todos", [], |row| row.get(0)).unwrap();
-        assert_eq!(count, 1);
-        let title: String = conn.query_row("SELECT title FROM todos WHERE id = 1", [], |row| row.get(0)).unwrap();
-        assert_eq!(title, "测试任务");
+    // 查询任务
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM todos", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 1);
+    let title: String = conn
+        .query_row("SELECT title FROM todos WHERE id = 1", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(title, "测试任务");
 
-        // 更新任务
-        conn.execute(
-            "UPDATE todos SET title = ?1, status = ?2, updated_at = ?3 WHERE id = 1",
-            rusqlite::params!["已更新的任务", "Completed", "2026-08-14T09:00:00"],
-        ).unwrap();
-        let updated_title: String = conn.query_row("SELECT title FROM todos WHERE id = 1", [], |row| row.get(0)).unwrap();
-        assert_eq!(updated_title, "已更新的任务");
-        let status: String = conn.query_row("SELECT status FROM todos WHERE id = 1", [], |row| row.get(0)).unwrap();
-        assert_eq!(status, "Completed");
+    // 更新任务
+    conn.execute(
+        "UPDATE todos SET title = ?1, status = ?2, updated_at = ?3 WHERE id = 1",
+        rusqlite::params!["已更新的任务", "Completed", "2026-08-14T09:00:00"],
+    )
+    .unwrap();
+    let updated_title: String = conn
+        .query_row("SELECT title FROM todos WHERE id = 1", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(updated_title, "已更新的任务");
+    let status: String = conn
+        .query_row("SELECT status FROM todos WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(status, "Completed");
 
-        // 删除任务
-        conn.execute("DELETE FROM todos WHERE id = 1", []).unwrap();
-        let count_after_delete: i64 = conn.query_row("SELECT COUNT(*) FROM todos", [], |row| row.get(0)).unwrap();
-        assert_eq!(count_after_delete, 0);
-    }
+    // 删除任务
+    conn.execute("DELETE FROM todos WHERE id = 1", []).unwrap();
+    let count_after_delete: i64 = conn
+        .query_row("SELECT COUNT(*) FROM todos", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count_after_delete, 0);
+}
 
-    #[test]
-    fn test_todo_crud_edge_cases() {
-        let tmp = tempfile::tempdir().unwrap();
-        let db_path = test_db(tmp.path());
-        let conn = rusqlite::Connection::open(&db_path).unwrap();
-        conn.execute_batch(
+#[test]
+fn test_todo_crud_edge_cases() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db_path = test_db(tmp.path());
+    let conn = rusqlite::Connection::open(&db_path).unwrap();
+    conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS todos (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                title TEXT NOT NULL,\n                description TEXT,\n                priority TEXT NOT NULL DEFAULT 'Medium',\n                due_date TEXT,\n                status TEXT NOT NULL DEFAULT 'Pending',\n                created_at TEXT NOT NULL,\n                updated_at TEXT NOT NULL\n            );",
         ).unwrap();
 
-        // 删除不存在的任务（不应报错，影响行数为 0）
-        let deleted = conn.execute("DELETE FROM todos WHERE id = 999", []).unwrap();
-        assert_eq!(deleted, 0);
+    // 删除不存在的任务（不应报错，影响行数为 0）
+    let deleted = conn
+        .execute("DELETE FROM todos WHERE id = 999", [])
+        .unwrap();
+    assert_eq!(deleted, 0);
 
-        // 更新不存在的任务（不应报错，影响行数为 0）
-        let updated = conn.execute(
+    // 更新不存在的任务（不应报错，影响行数为 0）
+    let updated = conn
+        .execute(
             "UPDATE todos SET title = ?1 WHERE id = 999",
             rusqlite::params!["不存在的任务"],
-        ).unwrap();
-        assert_eq!(updated, 0);
+        )
+        .unwrap();
+    assert_eq!(updated, 0);
 
-        // 查询不存在的任务（返回 None）
-        let result = conn.query_row("SELECT title FROM todos WHERE id = 999", [], |row| row.get::<_, String>(0));
-        assert!(result.is_err());
+    // 查询不存在的任务（返回 None）
+    let result = conn.query_row("SELECT title FROM todos WHERE id = 999", [], |row| {
+        row.get::<_, String>(0)
+    });
+    assert!(result.is_err());
 
-        // 创建多个任务后删除其中一个，验证其他任务不受影响
-        for i in 1..=3 {
-            conn.execute(
+    // 创建多个任务后删除其中一个，验证其他任务不受影响
+    for i in 1..=3 {
+        conn.execute(
                 "INSERT INTO todos (title, description, priority, due_date, status, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)",
                 rusqlite::params![format!("任务{}", i), format!("描述{}", i), "Medium", "2026-08-20", "Pending", "2026-08-14T08:00:00"],
             ).unwrap();
-        }
-        conn.execute("DELETE FROM todos WHERE id = 2", []).unwrap();
-        let remaining: Vec<i64> = {
-            let mut stmt = conn.prepare("SELECT id FROM todos ORDER BY id").unwrap();
-            let rows = stmt.query_map([], |row| row.get(0)).unwrap();
-            rows.map(|r| r.unwrap()).collect()
-        };
-        assert_eq!(remaining, vec![1, 3]);
     }
+    conn.execute("DELETE FROM todos WHERE id = 2", []).unwrap();
+    let remaining: Vec<i64> = {
+        let mut stmt = conn.prepare("SELECT id FROM todos ORDER BY id").unwrap();
+        let rows = stmt.query_map([], |row| row.get(0)).unwrap();
+        rows.map(|r| r.unwrap()).collect()
+    };
+    assert_eq!(remaining, vec![1, 3]);
+}

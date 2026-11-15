@@ -140,9 +140,9 @@ jobs:
       - name: Download macOS tarballs
         run: |
           curl -fsSL -o arm64.tar.gz \
-            "https://github.com/PentiumRabbit/todo-tui/releases/download/${GITHUB_REF_NAME}/todo-tui-aarch64-apple-darwin.tar.gz"
+            "https://github.com/pr-g/todo-tui/releases/download/${GITHUB_REF_NAME}/todo-tui-aarch64-apple-darwin.tar.gz"
           curl -fsSL -o x86_64.tar.gz \
-            "https://github.com/PentiumRabbit/todo-tui/releases/download/${GITHUB_REF_NAME}/todo-tui-x86_64-apple-darwin.tar.gz"
+            "https://github.com/pr-g/todo-tui/releases/download/${GITHUB_REF_NAME}/todo-tui-x86_64-apple-darwin.tar.gz"
 
       - name: Compute sha256
         run: |
@@ -152,7 +152,7 @@ jobs:
       - name: Checkout homebrew-tap
         uses: actions/checkout@v4
         with:
-          repository: PentiumRabbit/homebrew-tap
+          repository: pr-g/homebrew-tap
           token: ${{ secrets.TAP_GITHUB_TOKEN }}
           path: homebrew-tap
 
@@ -166,16 +166,16 @@ jobs:
           formula = textwrap.dedent(f"""\
           class TodoTui < Formula
             desc "Keyboard-driven terminal todo manager built with Rust and ratatui"
-            homepage "https://github.com/PentiumRabbit/todo-tui"
+            homepage "https://github.com/pr-g/todo-tui"
             version "{v}"
             license "MIT"
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/PentiumRabbit/todo-tui/releases/download/v{v}/todo-tui-aarch64-apple-darwin.tar.gz"
+                url "https://github.com/pr-g/todo-tui/releases/download/v{v}/todo-tui-aarch64-apple-darwin.tar.gz"
                 sha256 "{a64}"
               else
-                url "https://github.com/PentiumRabbit/todo-tui/releases/download/v{v}/todo-tui-x86_64-apple-darwin.tar.gz"
+                url "https://github.com/pr-g/todo-tui/releases/download/v{v}/todo-tui-x86_64-apple-darwin.tar.gz"
                 sha256 "{x64}"
               end
             end
